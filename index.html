@@ -72,7 +72,7 @@ button {
 
 .bg-cover {
     z-index: -3;
-    background-image: var(--cover, url("https://picsum.photos/seed/lab-dragon-album/800/800"));
+    background-image: var(--cover, url("https://wp-cdn.4ce.cn/v2/L0K0ikD.jpeg"));
     background-size: cover;
     background-position: center;
     filter: blur(20px) saturate(1.2);
@@ -208,12 +208,25 @@ button {
     height: 59px;
     border-radius: 50%;
     pointer-events: none;
-    opacity: 0.4;
+    opacity: 0.16;
     border: 1px solid rgba(94, 234, 212, 0.22);
     background:
-        radial-gradient(circle, transparent 72%, rgba(52, 211, 153, 0.18) 78%, transparent 82%),
-        radial-gradient(circle, transparent 80%, rgba(255,255,255,0.1) 84%, transparent 88%);
+        radial-gradient(circle, transparent 74%, rgba(52, 211, 153, 0.08) 79%, transparent 83%),
+        radial-gradient(circle, transparent 82%, rgba(255,255,255,0.05) 85%, transparent 89%);
     filter: blur(0.1px);
+}
+
+.vinyl-spectrum {
+    position: absolute;
+    left: 18px;
+    top: -12px;
+    width: 84px;
+    height: 84px;
+    pointer-events: none;
+    opacity: 0;
+    mix-blend-mode: screen;
+    filter: saturate(1.08) brightness(1.04);
+    transition: opacity 180ms ease;
 }
 
 .vinyl {
@@ -229,7 +242,7 @@ button {
     background:
         radial-gradient(circle, rgba(255,255,255,0.14) 0 1.5px, rgba(12, 16, 24, 0.96) 2.5px 4px, transparent 5px),
         repeating-radial-gradient(circle, rgba(255,255,255,0.07) 0 1px, rgba(255,255,255,0.02) 1px 3px, rgba(255,255,255,0.00) 3px 4px),
-        var(--disc-cover, url("https://picsum.photos/seed/lab-dragon-album/800/800")) center / contain no-repeat;
+        var(--disc-cover, none) center / contain no-repeat;
     background-blend-mode: normal, normal, normal;
     box-shadow: 0 9px 18px rgba(0,0,0,0.42);
     animation: spin 10s linear infinite;
@@ -239,16 +252,16 @@ button {
 
 .vinyl::after {
     content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
     width: 6px;
     height: 6px;
+    transform: translate(-50%, -50%);
     border-radius: 50%;
     background: #0b1018;
     border: 1px solid rgba(255,255,255,0.22);
     box-shadow: inset 0 0 9px rgba(0,0,0,0.7);
-}
-
-.vinyl-spectrum {
-    display: none;
 }
 
 .is-playing .vinyl {
@@ -256,7 +269,11 @@ button {
 }
 
 .is-playing .vinyl-halo {
-    animation: vinylHaloPulse 2.2s ease-in-out infinite;
+    animation: vinylHaloPulse 3s ease-in-out infinite;
+}
+
+.is-playing .vinyl-spectrum {
+    opacity: 0.98;
 }
 
 .cover-btn {
@@ -270,6 +287,10 @@ button {
     border: 1px solid rgba(255,255,255,0.13);
     background: #172033;
     box-shadow: 0 8px 18px rgba(0,0,0,0.46);
+}
+
+.cover-btn:hover {
+    transform: translateY(-1px);
 }
 
 .cover-btn img {
@@ -293,6 +314,7 @@ button {
     grid-template-columns: 27px 1fr 27px;
     gap: 5px;
     align-items: center;
+    margin-top: 4px;
     color: rgba(248,250,252,0.58);
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: 8px;
@@ -334,6 +356,7 @@ button {
     gap: 3px;
     width: 100%;
     overflow: hidden;
+    margin-top: 6px;
 }
 
 .left-controls,
@@ -963,6 +986,7 @@ button {
 
     <audio id="audio" preload="auto"></audio>
     <input class="hidden" type="file" id="filmInput" accept="image/*" multiple>
+    <input class="hidden" type="file" id="coverInput" accept="image/*">
 
     <section class="content">
         <div class="deck">
@@ -972,12 +996,13 @@ button {
             </header>
 
             <div class="vinyl-wrap">
+                <canvas class="vinyl-spectrum" id="vinylSpectrum" width="152" height="152" aria-hidden="true"></canvas>
                 <div class="vinyl-halo" aria-hidden="true"></div>
                 <div class="vinyl" id="vinyl">
                 </div>
-                <div class="cover-btn" aria-hidden="true">
-                    <img id="coverImg" alt="" src="https://picsum.photos/seed/lab-dragon-fixed-cover/800/800">
-                </div>
+                <button class="cover-btn" id="coverBtn" type="button" title="更换封面" aria-label="更换左侧封面">
+                    <img id="coverImg" alt="" src="https://wp-cdn.4ce.cn/v2/L0K0ikD.jpeg">
+                </button>
             </div>
 
             <div>
@@ -1066,8 +1091,15 @@ button {
 <script>
 (function () {
     const API_BASE = "https://api.xunhuisi.store/API/QQMusic/Song.php";
-    const DEFAULT_COVER = "https://picsum.photos/seed/lab-dragon-album/800/800";
-    const FIXED_SQUARE_COVER = "https://picsum.photos/seed/lab-dragon-fixed-cover/800/800";
+    const DEFAULT_HINT_LINES = [
+        { time: 0, text: "在右上角搜索一首歌" },
+        { time: 2, text: "歌词会跟随播放滚动" },
+        { time: 4, text: "切换按钮可进入胶片视图" }
+    ];
+    const DEFAULT_COVER = "";
+    const FIXED_SQUARE_COVER = "https://wp-cdn.4ce.cn/v2/L0K0ikD.jpeg";
+    const LEGACY_FIXED_SQUARE_COVER = "https://picsum.photos/seed/lab-dragon-fixed-cover/800/800";
+    const LEGACY_LOCAL_SQUARE_COVER = "file:///Users/gaozitian/Downloads/IMG_2389.JPG";
     const DEFAULT_FILM = [
         "https://picsum.photos/seed/lab-dragon-memory-1/480/320",
         "https://picsum.photos/seed/lab-dragon-memory-2/480/320",
@@ -1081,8 +1113,10 @@ button {
     const songTitle = $("songTitle");
     const songArtist = $("songArtist");
     const coverImg = $("coverImg");
-    const vinyl = $("vinyl");
+    const vinylSpectrum = $("vinylSpectrum");
     const filmInput = $("filmInput");
+    const coverInput = $("coverInput");
+    const coverBtn = $("coverBtn");
     const lyrics = $("lyrics");
     const progress = $("progress");
     const currentTime = $("currentTime");
@@ -1118,8 +1152,18 @@ button {
     let searchMode = "search";
     let playMode = 0;
     let isFilm = false;
+    let ignoreNextAudioError = false;
     let requestId = 0;
     let filmImages = readJson("lab_dragon_film_images", DEFAULT_FILM);
+    const savedSquareCover = localStorage.getItem("lab_dragon_square_cover");
+    let squareCover = !savedSquareCover
+        || savedSquareCover === LEGACY_FIXED_SQUARE_COVER
+        || savedSquareCover === LEGACY_LOCAL_SQUARE_COVER
+        ? FIXED_SQUARE_COVER
+        : savedSquareCover;
+    let spectrumActive = false;
+    let spectrumRendering = false;
+    const spectrumCtx = vinylSpectrum.getContext("2d");
 
     function readJson(key, fallback) {
         try {
@@ -1141,6 +1185,11 @@ button {
         localStorage.setItem("lab_dragon_film_images", JSON.stringify(filmImages));
     }
 
+    function saveSquareCover(url) {
+        squareCover = url || FIXED_SQUARE_COVER;
+        localStorage.setItem("lab_dragon_square_cover", squareCover);
+    }
+
     function formatTime(value) {
         if (!Number.isFinite(value)) return "00:00";
         const min = Math.floor(value / 60);
@@ -1148,15 +1197,123 @@ button {
         return `${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
     }
 
+    function drawSpectrumRing() {
+        if (!spectrumCtx || !spectrumActive) {
+            spectrumRendering = false;
+            return;
+        }
+
+        spectrumRendering = true;
+
+        const ctx = spectrumCtx;
+        const width = vinylSpectrum.width;
+        const height = vinylSpectrum.height;
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const t = performance.now() * 0.0013;
+        const innerRadius = 54;
+        const barCount = 72;
+
+        ctx.clearRect(0, 0, width, height);
+
+        ctx.save();
+        ctx.globalCompositeOperation = "screen";
+
+        for (let layer = 0; layer < 2; layer += 1) {
+            const radiusOffset = layer * 2.8;
+            for (let i = 0; i < barCount; i += 1) {
+                const angle = (Math.PI * 2 * i) / barCount - Math.PI / 2;
+                const pulse1 = Math.sin(t * 3.8 + i * 0.42 + layer * 0.7);
+                const pulse2 = Math.cos(t * 2.4 - i * 0.26);
+                const pulse3 = Math.sin(t * 1.5 + i * 0.11);
+                const energy = (pulse1 * 0.5 + pulse2 * 0.35 + pulse3 * 0.15 + 1) / 2;
+                const barLength = 3.5 + energy * 11;
+                const startRadius = innerRadius + radiusOffset;
+                const endRadius = startRadius + barLength;
+                const sx = centerX + Math.cos(angle) * startRadius;
+                const sy = centerY + Math.sin(angle) * startRadius;
+                const ex = centerX + Math.cos(angle) * endRadius;
+                const ey = centerY + Math.sin(angle) * endRadius;
+                const alpha = layer === 0 ? 0.28 + energy * 0.58 : 0.12 + energy * 0.22;
+
+                ctx.beginPath();
+                ctx.moveTo(sx, sy);
+                ctx.lineTo(ex, ey);
+                ctx.lineWidth = layer === 0 ? 2.1 : 4.2;
+                ctx.lineCap = "round";
+                ctx.strokeStyle = layer === 0
+                    ? `rgba(118, 255, 197, ${alpha})`
+                    : `rgba(255, 255, 255, ${alpha})`;
+                ctx.shadowBlur = layer === 0 ? 10 : 16;
+                ctx.shadowColor = layer === 0 ? "rgba(90,255,187,0.32)" : "rgba(255,255,255,0.16)";
+                ctx.stroke();
+            }
+        }
+
+        ctx.shadowBlur = 0;
+
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, innerRadius - 1.5, 0, Math.PI * 2);
+        ctx.lineWidth = 1.3;
+        ctx.strokeStyle = "rgba(155,255,215,0.38)";
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, innerRadius + 7.5, 0, Math.PI * 2);
+        ctx.lineWidth = 0.8;
+        ctx.strokeStyle = "rgba(255,255,255,0.12)";
+        ctx.stroke();
+
+        ctx.restore();
+        requestAnimationFrame(drawSpectrumRing);
+    }
+
+    function setSpectrumActive(active) {
+        spectrumActive = active;
+        if (!spectrumCtx) return;
+        if (active) {
+            if (!spectrumRendering) drawSpectrumRing();
+            return;
+        }
+        spectrumRendering = false;
+        spectrumCtx.clearRect(0, 0, vinylSpectrum.width, vinylSpectrum.height);
+    }
+
     function setCover(url) {
         const discCover = url || DEFAULT_COVER;
-        coverImg.src = FIXED_SQUARE_COVER;
-        document.documentElement.style.setProperty("--cover", `url("${FIXED_SQUARE_COVER}")`);
-        document.documentElement.style.setProperty("--disc-cover", `url("${discCover}")`);
+        coverImg.src = squareCover;
+        document.documentElement.style.setProperty("--cover", `url("${squareCover}")`);
+        document.documentElement.style.setProperty("--disc-cover", discCover ? `url("${discCover}")` : "none");
     }
 
     function setStatus(text) {
         songArtist.textContent = text;
+    }
+
+    function renderCollections() {
+        renderPlaylist();
+        renderFavoriteList();
+        renderResults();
+    }
+
+    function resetAudioSource(clearWithLoad = false) {
+        audio.pause();
+        if (clearWithLoad) {
+            audio.removeAttribute("src");
+            audio.load();
+            return;
+        }
+        audio.src = "";
+    }
+
+    function syncTrackMeta(track, fallbackCover = DEFAULT_COVER) {
+        songTitle.textContent = track.name;
+        setStatus(track.singer);
+        setCover(track.pic || fallbackCover);
+    }
+
+    function renderStateMessage(text) {
+        renderLyrics([{ time: 0, text }]);
     }
 
     function normalizeTrack(track) {
@@ -1186,11 +1343,7 @@ button {
     }
 
     function renderLyrics(lines) {
-        lyricsData = lines && lines.length ? lines : [
-            { time: 0, text: "在右上角搜索一首歌" },
-            { time: 2, text: "歌词会跟随播放滚动" },
-            { time: 4, text: "切换按钮可进入胶片视图" }
-        ];
+        lyricsData = lines && lines.length ? lines : DEFAULT_HINT_LINES;
         lastLyricIndex = -1;
         const useErrorMode = lyricsData.length === 1 && lyricsData[0].text === "这首歌的音轨迷路啦";
         const useStatusMode = lyricsData.length === 1 && !useErrorMode;
@@ -1222,7 +1375,7 @@ button {
         const active = lyrics.querySelector(`[data-index="${nextIndex}"]`);
         if (active) {
             active.classList.add("active");
-            active.scrollIntoView({ behavior: "smooth", block: "center" });
+            active.scrollIntoView({ block: "center" });
         }
         lastLyricIndex = nextIndex;
     }
@@ -1234,10 +1387,11 @@ button {
             return;
         }
         playlist.forEach((track, index) => {
-            const item = document.createElement("button");
+            const item = document.createElement("div");
             const normalized = normalizeTrack(track);
             const isActive = sameTrack(currentTrack, normalized);
             item.className = `playlist-item ${isActive ? "active" : ""}`;
+            item.setAttribute("role", "group");
             item.innerHTML = `
                 <span class="mini-meta">
                     ${isActive ? '<span class="pulse-dot"></span>' : ""}
@@ -1263,7 +1417,7 @@ button {
             favoriteList.innerHTML = '<div class="empty">还没有喜欢的歌曲</div>';
             return;
         }
-        favorites.forEach((track, index) => {
+        favorites.forEach((track) => {
             const item = document.createElement("div");
             const normalized = normalizeTrack(track);
             const isActive = sameTrack(currentTrack, normalized);
@@ -1296,7 +1450,7 @@ button {
             resultList.innerHTML = `<div class="empty">${searchMode === "search" ? "输入关键词寻找音乐" : "喜欢的歌曲会在这里"}</div>`;
             return;
         }
-        list.forEach((track, index) => {
+        list.forEach((track) => {
             const item = document.createElement("div");
             const normalized = normalizeTrack(track);
             const isActive = sameTrack(currentTrack, normalized);
@@ -1327,9 +1481,7 @@ button {
         if (index >= 0) favorites.splice(index, 1);
         else favorites.unshift(normalized);
         saveFavorites();
-        renderPlaylist();
-        renderFavoriteList();
-        renderResults();
+        renderCollections();
     }
 
     function sameTrack(a, b) {
@@ -1376,7 +1528,7 @@ button {
         }
     }
 
-    function removeFromPlaylist(index, emptyStateLines) {
+    function removeFromPlaylist(index) {
         if (index < 0 || index >= playlist.length) return;
         const removingCurrent = activeList === playlist && index === activeIndex;
         playlist.splice(index, 1);
@@ -1384,50 +1536,44 @@ button {
             if (index < activeIndex) activeIndex -= 1;
             else if (index === activeIndex) activeIndex = Math.min(activeIndex, playlist.length - 1);
         }
-        renderPlaylist();
-        renderFavoriteList();
-        renderResults();
+        renderCollections();
         if (!playlist.length) {
             activeList = playlist;
             activeIndex = -1;
             currentTrack = null;
-            audio.pause();
-            audio.src = "";
+            resetAudioSource();
+            ignoreNextAudioError = true;
+            audio.load();
             updatePlayState(false);
+            setSpectrumActive(false);
             songTitle.textContent = "快把皮皮还给我专属";
             songArtist.textContent = "搜索一首歌开始播放";
             setCover(DEFAULT_COVER);
-            if (emptyStateLines && emptyStateLines.length) renderLyrics(emptyStateLines);
-            else renderLyrics();
+            renderLyrics(DEFAULT_HINT_LINES);
             playlistPop.classList.remove("show");
             return;
         }
         if (removingCurrent) {
-            playTrack(activeIndex, false);
+            const nextIndex = Math.max(0, Math.min(activeIndex, playlist.length - 1));
+            playTrack(nextIndex, false);
         }
     }
 
     async function playFromSearch(track) {
         const normalized = normalizeTrack(track);
         if (!normalized.mid) {
-            audio.pause();
-            audio.src = "";
+            resetAudioSource();
             updatePlayState(false);
-            songTitle.textContent = normalized.name;
-            setStatus(normalized.singer);
-            setCover(normalized.pic || DEFAULT_COVER);
-            renderLyrics([{ time: 0, text: "这首歌还没拿到通行证" }]);
+            setSpectrumActive(false);
+            syncTrackMeta(normalized);
+            renderStateMessage("这首歌还没拿到通行证");
             return;
         }
 
         const currentRequest = ++requestId;
-        audio.pause();
-        audio.removeAttribute("src");
-        audio.load();
-        songTitle.textContent = normalized.name;
-        setStatus(normalized.singer);
-        setCover(normalized.pic || DEFAULT_COVER);
-        renderLyrics([{ time: 0, text: "正在解析音乐资源..." }]);
+        resetAudioSource(true);
+        syncTrackMeta(normalized);
+        renderStateMessage("正在解析音乐资源...");
         updatePlayState(false);
 
         try {
@@ -1435,10 +1581,10 @@ button {
             if (currentRequest !== requestId) return;
             const musicUrl = data.music_url;
             if (data.code !== 200 || !musicUrl) {
-                audio.pause();
-                audio.src = "";
+                resetAudioSource();
                 updatePlayState(false);
-                renderLyrics([{ time: 0, text: data.code === 200 ? "这首歌今天有点害羞，先不给我放" : "这首歌偷偷溜走了，咱们换一首吧" }]);
+                setSpectrumActive(false);
+                renderStateMessage(data.code === 200 ? "这首歌今天有点害羞，先不给我放" : "这首歌偷偷溜走了，咱们换一首吧");
                 return;
             }
 
@@ -1446,9 +1592,7 @@ button {
             activeList = playlist;
             activeIndex = 0;
             currentTrack = normalizeTrack(playlist[0]);
-            renderPlaylist();
-            renderFavoriteList();
-            renderResults();
+            renderCollections();
 
             songTitle.textContent = data.title || normalized.name;
             setStatus(data.singer || normalized.singer);
@@ -1459,7 +1603,7 @@ button {
             if (promise) promise.catch(() => updatePlayState(false));
         } catch (error) {
             if (currentRequest !== requestId) return;
-            renderLyrics([{ time: 0, text: "网络在发小脾气，等会儿再试试呀" }]);
+            renderStateMessage("网络在发小脾气，等会儿再试试呀");
         }
     }
 
@@ -1504,32 +1648,27 @@ button {
         activeIndex = index;
         const track = normalizeTrack(activeList[index]);
         if (!track.mid) {
-            renderLyrics([{ time: 0, text: "这首歌还没拿到通行证" }]);
+            setSpectrumActive(false);
+            renderStateMessage("这首歌还没拿到通行证");
             return;
         }
         currentTrack = track;
         const currentRequest = ++requestId;
-        audio.pause();
-        audio.removeAttribute("src");
-        audio.load();
-        songTitle.textContent = track.name;
-        setStatus(track.singer);
-        setCover(track.pic || DEFAULT_COVER);
-        renderLyrics([{ time: 0, text: "正在解析音乐资源..." }]);
+        resetAudioSource(true);
+        syncTrackMeta(track);
+        renderStateMessage("正在解析音乐资源...");
         updatePlayState(false);
-        renderPlaylist();
-        renderFavoriteList();
-        renderResults();
+        renderCollections();
 
         try {
             const data = await fetchJsonWithRetry(`${API_BASE}?mid=${encodeURIComponent(track.mid)}&type=json`, 1);
             if (currentRequest !== requestId) return;
             const musicUrl = data.music_url;
             if (data.code !== 200 || !musicUrl) {
-                audio.pause();
-                audio.src = "";
+                resetAudioSource();
                 updatePlayState(false);
-                renderLyrics([{ time: 0, text: data.code === 200 ? "这首歌今天有点害羞，先不给我放" : "这首歌偷偷溜走了，咱们换一首吧" }]);
+                setSpectrumActive(false);
+                renderStateMessage(data.code === 200 ? "这首歌今天有点害羞，先不给我放" : "这首歌偷偷溜走了，咱们换一首吧");
                 return;
             }
             songTitle.textContent = data.title || track.name;
@@ -1543,7 +1682,7 @@ button {
             }
         } catch (error) {
             if (currentRequest !== requestId) return;
-            renderLyrics([{ time: 0, text: "网络在发小脾气，等会儿再试试呀" }]);
+            renderStateMessage("网络在发小脾气，等会儿再试试呀");
         }
     }
 
@@ -1581,6 +1720,12 @@ button {
         searchTab.classList.toggle("active", mode === "search");
         favoriteTab.classList.toggle("active", mode === "favorite");
         renderResults();
+    }
+
+    function resetSearchModal() {
+        searchResults = [];
+        searchInput.value = "";
+        setSearchMode("search");
     }
 
     function cycleMode() {
@@ -1659,6 +1804,19 @@ button {
         });
     });
 
+    coverBtn.addEventListener("click", () => coverInput.click());
+    coverInput.addEventListener("change", () => {
+        const [file] = Array.from(coverInput.files || []);
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+            saveSquareCover(String(reader.result));
+            setCover((currentTrack && currentTrack.pic) || DEFAULT_COVER);
+            coverInput.value = "";
+        };
+        reader.readAsDataURL(file);
+    });
+
     $("playBtn").addEventListener("click", togglePlay);
     $("prevBtn").addEventListener("click", () => changeTrack(-1, false));
     $("nextBtn").addEventListener("click", () => changeTrack(1, false));
@@ -1677,9 +1835,9 @@ button {
     });
     $("toggleViewBtn").addEventListener("click", toggleView);
     $("openSearchBtn").addEventListener("click", () => {
+        resetSearchModal();
         searchModal.classList.add("show");
         searchInput.focus();
-        renderResults();
     });
     $("closeSearchBtn").addEventListener("click", () => searchModal.classList.remove("show"));
     $("searchBtn").addEventListener("click", searchSongs);
@@ -1719,19 +1877,31 @@ button {
         duration.textContent = formatTime(audio.duration);
     });
     audio.addEventListener("error", () => {
-        updatePlayState(false);
-        if (activeList === playlist && activeIndex >= 0 && activeIndex < playlist.length) {
-            removeFromPlaylist(activeIndex, [{ time: 0, text: "这首歌的音轨迷路啦" }]);
+        if (ignoreNextAudioError) {
+            ignoreNextAudioError = false;
+            return;
         }
-        else renderLyrics([{ time: 0, text: "这首歌的音轨迷路啦" }]);
+        updatePlayState(false);
+        setSpectrumActive(false);
+        if (activeList === playlist && activeIndex >= 0 && activeIndex < playlist.length) {
+            removeFromPlaylist(activeIndex);
+        }
+        else renderStateMessage("这首歌的音轨迷路啦");
     });
-    audio.addEventListener("play", () => updatePlayState(true));
-    audio.addEventListener("pause", () => updatePlayState(false));
+    audio.addEventListener("play", () => {
+        updatePlayState(true);
+        setSpectrumActive(true);
+    });
+    audio.addEventListener("pause", () => {
+        updatePlayState(false);
+        setSpectrumActive(false);
+    });
     audio.addEventListener("ended", () => changeTrack(1, true));
 
     renderLyrics();
     renderFilm();
     setCover(DEFAULT_COVER);
+    setSpectrumActive(false);
     renderPlaylist();
     renderFavoriteList();
     renderResults();
