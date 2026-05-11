@@ -1,0 +1,1748 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>快把皮皮还给我专属音乐组件</title>
+<style>
+:root {
+    --accent: #22c55e;
+    --accent-2: #f59e0b;
+    --hot: #fb7185;
+    --ink: #f8fafc;
+    --muted: rgba(248, 250, 252, 0.62);
+    --panel: rgba(13, 18, 28, 0.7);
+    --line: rgba(255, 255, 255, 0.12);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+    width: 100%;
+    min-height: 100%;
+    background: transparent;
+    overflow: hidden;
+}
+
+body {
+    display: grid;
+    place-items: center;
+    padding: 6px;
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif;
+    user-select: none;
+}
+
+button,
+input {
+    font: inherit;
+}
+
+button {
+    border: 0;
+    color: inherit;
+    cursor: pointer;
+}
+
+.widget {
+    position: relative;
+    width: min(100vw - 12px, 361px);
+    height: 175px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    background: rgba(7, 12, 20, 0.58);
+    box-shadow: 0 22px 48px rgba(0, 0, 0, 0.42);
+    isolation: isolate;
+}
+
+.bg-cover,
+.bg-wash,
+.grain {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.bg-cover {
+    z-index: -3;
+    background-image: var(--cover, url("https://picsum.photos/seed/lab-dragon-album/800/800"));
+    background-size: cover;
+    background-position: center;
+    filter: blur(20px) saturate(1.2);
+    opacity: 0.46;
+    transform: scale(1.16);
+    transition: background-image 500ms ease, opacity 500ms ease;
+}
+
+.bg-wash {
+    z-index: -2;
+    background:
+        radial-gradient(circle at 79% 18%, rgba(34, 197, 94, 0.28), transparent 31%),
+        radial-gradient(circle at 48% 105%, rgba(251, 113, 133, 0.18), transparent 28%),
+        linear-gradient(100deg, rgba(8, 12, 20, 0.97) 0%, rgba(12, 18, 29, 0.84) 48%, rgba(13, 18, 28, 0.22) 100%);
+}
+
+.grain {
+    z-index: -1;
+    opacity: 0.18;
+    background-image:
+        linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+    background-size: 18px 18px;
+    mask-image: linear-gradient(to right, black, transparent 82%);
+}
+
+.top-actions {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 8;
+    display: flex;
+    gap: 7px;
+}
+
+.icon-btn {
+    display: grid;
+    place-items: center;
+    width: 25px;
+    height: 25px;
+    border: 1px solid rgba(255,255,255,0.13);
+    border-radius: 999px;
+    background: rgba(255,255,255,0.07);
+    backdrop-filter: blur(14px);
+    transition: transform 160ms ease, background 160ms ease, color 160ms ease;
+}
+
+.icon-btn:hover {
+    color: var(--accent);
+    background: rgba(255,255,255,0.13);
+}
+
+.icon-btn:active {
+    transform: scale(0.93);
+}
+
+.icon-btn svg,
+.control-btn svg {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
+}
+
+.content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    width: 100%;
+    height: 100%;
+    padding: 13px 15px;
+}
+
+.deck {
+    width: 154px;
+    min-width: 154px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding-right: 8px;
+}
+
+.song-meta {
+    width: 132px;
+    min-height: 34px;
+}
+
+.title {
+    max-width: 132px;
+    overflow: hidden;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 750;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.artist {
+    max-width: 132px;
+    margin-top: 3px;
+    overflow: hidden;
+    color: var(--muted);
+    font-size: 9px;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vinyl-wrap {
+    position: relative;
+    height: 61px;
+    margin-top: 1px;
+}
+
+@keyframes vinylHaloPulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 0.42;
+        box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.32), 0 0 10px rgba(52, 211, 153, 0.18);
+    }
+    50% {
+        transform: scale(1.035);
+        opacity: 0.88;
+        box-shadow: 0 0 0 1px rgba(94, 234, 212, 0.7), 0 0 16px rgba(94, 234, 212, 0.34);
+    }
+}
+
+.vinyl-halo {
+    position: absolute;
+    left: 31px;
+    top: 0;
+    width: 59px;
+    height: 59px;
+    border-radius: 50%;
+    pointer-events: none;
+    opacity: 0.4;
+    border: 1px solid rgba(94, 234, 212, 0.22);
+    background:
+        radial-gradient(circle, transparent 72%, rgba(52, 211, 153, 0.18) 78%, transparent 82%),
+        radial-gradient(circle, transparent 80%, rgba(255,255,255,0.1) 84%, transparent 88%);
+    filter: blur(0.1px);
+}
+
+.vinyl {
+    position: absolute;
+    left: 33px;
+    top: 2px;
+    display: grid;
+    place-items: center;
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.12);
+    background:
+        radial-gradient(circle, rgba(255,255,255,0.14) 0 1.5px, rgba(12, 16, 24, 0.96) 2.5px 4px, transparent 5px),
+        repeating-radial-gradient(circle, rgba(255,255,255,0.07) 0 1px, rgba(255,255,255,0.02) 1px 3px, rgba(255,255,255,0.00) 3px 4px),
+        var(--disc-cover, url("https://picsum.photos/seed/lab-dragon-album/800/800")) center / contain no-repeat;
+    background-blend-mode: normal, normal, normal;
+    box-shadow: 0 9px 18px rgba(0,0,0,0.42);
+    animation: spin 10s linear infinite;
+    animation-play-state: paused;
+    overflow: visible;
+}
+
+.vinyl::after {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #0b1018;
+    border: 1px solid rgba(255,255,255,0.22);
+    box-shadow: inset 0 0 9px rgba(0,0,0,0.7);
+}
+
+.vinyl-spectrum {
+    display: none;
+}
+
+.is-playing .vinyl {
+    animation-play-state: running;
+}
+
+.is-playing .vinyl-halo {
+    animation: vinylHaloPulse 2.2s ease-in-out infinite;
+}
+
+.cover-btn {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 61px;
+    height: 61px;
+    overflow: hidden;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.13);
+    background: #172033;
+    box-shadow: 0 8px 18px rgba(0,0,0,0.46);
+}
+
+.cover-btn img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.cover-btn::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(0,0,0,0.14));
+    pointer-events: none;
+}
+
+.progress-row {
+    display: grid;
+    grid-template-columns: 27px 1fr 27px;
+    gap: 5px;
+    align-items: center;
+    color: rgba(248,250,252,0.58);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 8px;
+}
+
+.time-end {
+    text-align: right;
+}
+
+.progress {
+    width: 100%;
+    min-width: 0;
+    height: 12px;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+}
+
+.progress::-webkit-slider-runnable-track {
+    height: 3px;
+    border-radius: 99px;
+    background: linear-gradient(90deg, var(--accent) var(--progress, 0%), rgba(255,255,255,0.18) var(--progress, 0%));
+}
+
+.progress::-webkit-slider-thumb {
+    width: 9px;
+    height: 9px;
+    margin-top: -3px;
+    appearance: none;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(34,197,94,0.18), 0 0 12px rgba(34,197,94,0.55);
+}
+
+.controls {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 3px;
+    width: 100%;
+    overflow: hidden;
+}
+
+.left-controls,
+.transport {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    min-width: 0;
+}
+
+.control-btn {
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.78);
+    transition: transform 150ms ease, background 150ms ease, color 150ms ease;
+}
+
+.control-btn svg {
+    width: 12px;
+    height: 12px;
+}
+
+.control-btn:hover {
+    color: var(--accent);
+    background: rgba(255,255,255,0.12);
+}
+
+.play {
+    width: 26px;
+    height: 26px;
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.26);
+    background: rgba(255,255,255,0.15);
+    box-shadow: 0 0 16px rgba(34,197,94,0.18);
+}
+
+.play svg {
+    width: 13px;
+    height: 13px;
+}
+
+.view-panel {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    overflow: hidden;
+    border-radius: 16px;
+}
+
+.lyrics,
+.film {
+    position: absolute;
+    inset: 0;
+    transition: opacity 300ms ease, transform 300ms ease;
+}
+
+.lyrics {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+    overflow-y: auto;
+    padding: 61px 2px 55px 6px;
+    text-align: right;
+    scrollbar-width: none;
+    mask-image: linear-gradient(to bottom, transparent, black 26%, black 75%, transparent);
+}
+
+.lyrics.status-mode {
+    justify-content: center;
+    align-items: center;
+    gap: 0;
+    padding: 18px 12px;
+    text-align: center;
+    mask-image: none;
+}
+
+.lyrics.error-mode {
+    justify-content: center;
+    align-items: flex-end;
+    gap: 0;
+    padding: 18px 2px 18px 6px;
+    text-align: right;
+    mask-image: none;
+}
+
+.lyrics::-webkit-scrollbar,
+.result-list::-webkit-scrollbar,
+.playlist-list::-webkit-scrollbar,
+.film-editor-list::-webkit-scrollbar {
+    display: none;
+}
+
+.lyric-line {
+    width: 100%;
+    color: rgba(248,250,252,0.42);
+    font-size: 10px;
+    font-weight: 650;
+    line-height: 1.35;
+    transition: color 260ms ease, opacity 260ms ease, transform 260ms ease, text-shadow 260ms ease;
+}
+
+.lyric-line.active {
+    color: var(--accent);
+    opacity: 1;
+    transform: scale(1.05);
+    text-shadow: 0 0 14px rgba(34,197,94,0.4);
+}
+
+.lyrics.status-mode .lyric-line {
+    max-width: 168px;
+    color: rgba(255,255,255,0.72);
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+.lyrics.status-mode .lyric-line.active {
+    color: rgba(255,255,255,0.86);
+    transform: none;
+    text-shadow: none;
+}
+
+.lyrics.error-mode .lyric-line {
+    max-width: 168px;
+    color: rgba(255,255,255,0.72);
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+.lyrics.error-mode .lyric-line.active {
+    color: rgba(255,255,255,0.86);
+    transform: none;
+    text-shadow: none;
+}
+
+.film {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(8px);
+    mask-image: linear-gradient(to bottom, transparent, black 7%, black 93%, transparent);
+}
+
+.film-track {
+    display: grid;
+    gap: 7px;
+    animation: filmScroll 16s linear infinite;
+}
+
+.film-strip {
+    height: 54px;
+    border: 1px solid rgba(255,255,255,0.13);
+    border-radius: 12px;
+    background-size: cover;
+    background-position: center;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.18);
+}
+
+.show-film .lyrics {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-8px);
+}
+
+.show-film .film {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(0);
+}
+
+.popover,
+.modal,
+.film-editor {
+    position: absolute;
+    z-index: 20;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(9, 13, 22, 0.94);
+    backdrop-filter: blur(22px);
+    box-shadow: 0 18px 40px rgba(0,0,0,0.38);
+}
+
+.popover {
+    left: 14px;
+    bottom: 47px;
+    width: 164px;
+    height: 116px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 16px;
+    opacity: 0;
+    transform: translateY(8px);
+    pointer-events: none;
+    transition: opacity 180ms ease, transform 180ms ease;
+}
+
+#favoritePop {
+    left: 48px;
+}
+
+.popover.show {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.popover-head {
+    flex: 0 0 auto;
+    padding: 9px 11px 7px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.8);
+    font-size: 10px;
+    font-weight: 750;
+}
+
+.playlist-list,
+.result-list,
+.film-editor-list {
+    overflow-y: auto;
+    scrollbar-width: none;
+}
+
+.playlist-list {
+    flex: 1;
+}
+
+.playlist-item,
+.result-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    width: 100%;
+    min-height: 34px;
+    padding: 7px 9px;
+    background: transparent;
+    text-align: left;
+}
+
+.playlist-item {
+    justify-content: space-between;
+}
+
+.result-item {
+    gap: 7px;
+    min-height: 54px;
+    margin-bottom: 7px;
+    padding: 10px 14px 10px 10px;
+    border: 1px solid rgba(255,255,255,0.22);
+    border-radius: 14px;
+    background: rgba(48, 57, 72, 0.76);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.playlist-item:hover,
+.result-item:hover {
+    background: rgba(59, 70, 88, 0.82);
+}
+
+.playlist-item.active .mini-title,
+.result-item.active .result-title {
+    color: var(--accent);
+}
+
+.pulse-dot {
+    width: 5px;
+    height: 5px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 10px rgba(34,197,94,0.85);
+    animation: pulse 1.8s ease-in-out infinite;
+}
+
+.result-item .pulse-dot {
+    width: 7px;
+    height: 7px;
+}
+
+.mini-meta,
+.result-meta {
+    min-width: 0;
+    flex: 1;
+}
+
+.mini-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-align: left;
+}
+
+.mini-meta .mini-title {
+    min-width: 0;
+    flex: 1;
+}
+
+.result-meta {
+    display: block;
+    border: 0;
+    outline: 0;
+    padding: 0;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.mini-title,
+.result-title {
+    overflow: hidden;
+    color: rgba(255,255,255,0.84);
+    font-size: 10px;
+    font-weight: 820;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.result-artist {
+    overflow: hidden;
+    margin-top: 5px;
+    color: rgba(255,255,255,0.58);
+    font-size: 8px;
+    font-weight: 560;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.heart {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    background: transparent;
+    color: rgba(156, 165, 181, 0.9);
+}
+
+.mini-remove {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    line-height: 1;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.52);
+}
+
+.mini-remove:hover {
+    color: #fff;
+    background: rgba(251, 113, 133, 0.24);
+}
+
+.favorite-toggle {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.07);
+    color: rgba(255,255,255,0.56);
+}
+
+.favorite-toggle svg {
+    width: 10px;
+    height: 10px;
+    fill: currentColor;
+}
+
+.favorite-toggle.liked {
+    background: rgba(244, 63, 94, 0.16);
+    color: var(--hot);
+}
+
+.heart svg {
+    width: 15px;
+    height: 15px;
+    fill: currentColor;
+}
+
+.heart.liked {
+    color: var(--hot);
+}
+
+.modal,
+.film-editor {
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    border-radius: 24px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 180ms ease;
+}
+
+.modal {
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 100% 8%, rgba(53, 65, 88, 0.5), transparent 38%),
+        linear-gradient(110deg, rgba(10, 15, 24, 0.99), rgba(19, 28, 43, 0.98));
+    box-shadow:
+        inset 0 0 0 2px rgba(255,255,255,0.08),
+        inset 0 0 0 4px rgba(5, 8, 14, 0.76),
+        0 18px 44px rgba(0,0,0,0.48);
+}
+
+.modal.show,
+.film-editor.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.modal-head,
+.film-editor-head {
+    position: relative;
+    flex: 0 0 auto;
+    padding: 12px 54px 0 26px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.searchbar {
+    display: grid;
+    grid-template-columns: 24px 1fr 45px;
+    align-items: center;
+    height: 28px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.11);
+    border-radius: 15px;
+    background: rgba(6, 10, 17, 0.74);
+    box-shadow: 0 1px 0 rgba(255,255,255,0.03), inset 0 1px 10px rgba(0,0,0,0.22);
+}
+
+.search-icon {
+    width: 10px;
+    height: 10px;
+    margin-left: 12px;
+    color: rgba(226,232,240,0.78);
+    fill: currentColor;
+    pointer-events: none;
+}
+
+.searchbar input {
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    padding: 0 8px;
+    color: #fff;
+    background: transparent;
+    font-size: 10px;
+    font-weight: 720;
+    letter-spacing: 0;
+}
+
+.searchbar button {
+    align-self: stretch;
+    background: #22c55e;
+    color: #082111;
+    font-size: 10px;
+    font-weight: 850;
+    letter-spacing: 0;
+}
+
+.close-btn {
+    position: absolute;
+    top: 12px;
+    right: 24px;
+    width: 25px;
+    height: 25px;
+    background: rgba(42, 51, 68, 0.72);
+    color: rgba(255,255,255,0.88);
+    border-color: rgba(255,255,255,0.06);
+}
+
+.tabs {
+    display: flex;
+    gap: 16px;
+    margin-top: 13px;
+    padding-left: 4px;
+}
+
+.tab {
+    padding-bottom: 7px;
+    background: transparent;
+    color: rgba(255,255,255,0.42);
+    font-size: 10px;
+    font-weight: 850;
+    letter-spacing: 0;
+}
+
+.tab.active {
+    color: var(--accent);
+    box-shadow: inset 0 -2px 0 var(--accent);
+}
+
+.result-list {
+    position: relative;
+    flex: 1;
+    padding: 15px 12px 12px 14px;
+    background: rgba(6,10,17,0.08);
+}
+
+.empty {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    color: rgba(255,255,255,0.42);
+    font-size: 10px;
+    text-align: center;
+}
+
+.film-editor-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px;
+}
+
+.film-editor-head h2 {
+    color: rgba(255,255,255,0.86);
+    font-size: 12px;
+}
+
+.film-editor-list {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    flex: 1;
+    padding: 10px 12px;
+}
+
+.film-thumb {
+    position: relative;
+    height: 52px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    background-size: cover;
+    background-position: center;
+}
+
+.film-thumb button {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.55);
+    color: #fff;
+    font-size: 12px;
+}
+
+.add-film {
+    border: 1px dashed rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.05);
+    color: rgba(255,255,255,0.72);
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.hidden {
+    display: none !important;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes filmScroll {
+    to { transform: translateY(-50%); }
+}
+
+@keyframes pulse {
+    50% { transform: scale(1.6); opacity: 0.45; }
+}
+
+@media (max-width: 330px) {
+    .widget {
+        height: 171px;
+        border-radius: 21px;
+    }
+    .content {
+        padding: 12px;
+    }
+    .deck {
+        width: 147px;
+        min-width: 147px;
+    }
+    .top-actions {
+        top: 9px;
+        right: 9px;
+    }
+}
+</style>
+</head>
+<body>
+<main id="widget" class="widget" aria-label="快把皮皮还给我专属音乐播放器">
+    <div class="bg-cover" id="bgCover"></div>
+    <div class="bg-wash"></div>
+    <div class="grain"></div>
+
+    <div class="top-actions">
+        <button class="icon-btn hidden" id="editFilmBtn" title="配置胶片" aria-label="配置胶片">
+            <svg viewBox="0 0 24 24"><path d="M19.4 13.5c.1-.5.1-1 .1-1.5s0-1-.1-1.5l2-1.6-2-3.5-2.4 1a7.5 7.5 0 0 0-2.6-1.5L14 2.3h-4l-.4 2.6A7.5 7.5 0 0 0 7 6.4l-2.4-1-2 3.5 2 1.6a8.7 8.7 0 0 0 0 3l-2 1.6 2 3.5 2.4-1a7.5 7.5 0 0 0 2.6 1.5l.4 2.6h4l.4-2.6a7.5 7.5 0 0 0 2.6-1.5l2.4 1 2-3.5-2-1.6ZM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5Z"/></svg>
+        </button>
+        <button class="icon-btn" id="toggleViewBtn" title="歌词/胶片" aria-label="切换视图">
+            <svg id="filmIcon" viewBox="0 0 24 24"><path d="M4 2h16v20H4V2Zm3 3v2h2V5H7Zm8 0v2h2V5h-2ZM7 10v2h2v-2H7Zm8 0v2h2v-2h-2ZM7 15v2h2v-2H7Zm8 0v2h2v-2h-2Z"/></svg>
+            <svg id="lyricsIcon" class="hidden" viewBox="0 0 24 24"><path d="M4 6h16v2H4V6Zm0 5h16v2H4v-2Zm0 5h11v2H4v-2Z"/></svg>
+        </button>
+        <button class="icon-btn" id="openSearchBtn" title="搜索歌曲" aria-label="搜索歌曲">
+            <svg viewBox="0 0 24 24"><path d="m20.7 19.3-4.2-4.2a7 7 0 1 0-1.4 1.4l4.2 4.2 1.4-1.4ZM5 11a5 5 0 1 1 10 0A5 5 0 0 1 5 11Z"/></svg>
+        </button>
+    </div>
+
+    <audio id="audio" preload="auto"></audio>
+    <input class="hidden" type="file" id="filmInput" accept="image/*" multiple>
+
+    <section class="content">
+        <div class="deck">
+            <header class="song-meta">
+                <h1 class="title" id="songTitle">快把皮皮还给我专属</h1>
+                <p class="artist" id="songArtist">搜索一首歌开始播放</p>
+            </header>
+
+            <div class="vinyl-wrap">
+                <div class="vinyl-halo" aria-hidden="true"></div>
+                <div class="vinyl" id="vinyl">
+                </div>
+                <div class="cover-btn" aria-hidden="true">
+                    <img id="coverImg" alt="" src="https://picsum.photos/seed/lab-dragon-fixed-cover/800/800">
+                </div>
+            </div>
+
+            <div>
+                <div class="progress-row">
+                    <span id="currentTime">00:00</span>
+                    <input class="progress" id="progress" type="range" min="0" max="1000" value="0" aria-label="播放进度">
+                    <span class="time-end" id="duration">00:00</span>
+                </div>
+                <div class="controls">
+                    <div class="left-controls">
+                        <button class="control-btn" id="modeBtn" title="播放模式" aria-label="播放模式">
+                            <svg id="modeSeq" viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7Zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4Z"/></svg>
+                            <svg id="modeRand" class="hidden" viewBox="0 0 24 24"><path d="M10.6 9.2 5.4 4 4 5.4l5.2 5.2 1.4-1.4ZM14.5 4l2 2L4 18.6 5.4 20 18 7.5l2 2V4h-5.5Zm.3 9.4-1.4 1.4 3.1 3.1-2 2.1H20v-5.5l-2 2-3.2-3.1Z"/></svg>
+                            <svg id="modeOne" class="hidden" viewBox="0 0 24 24"><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7Zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4Zm-4-2V9h-1l-2 1v1h1.5v4H13Z"/></svg>
+                        </button>
+                    </div>
+                    <div class="transport">
+                        <button class="control-btn" id="favoriteListBtn" title="我的喜欢" aria-label="我的喜欢">
+                            <svg viewBox="0 0 24 24"><path d="m12 21-1.4-1.3C5.4 15 2 11.9 2 8.2 2 5.2 4.4 3 7.3 3c1.7 0 3.4.8 4.7 2.1A6.4 6.4 0 0 1 16.7 3C19.6 3 22 5.2 22 8.2c0 3.7-3.4 6.8-8.6 11.5L12 21Z"/></svg>
+                        </button>
+                        <button class="control-btn" id="prevBtn" title="上一首" aria-label="上一首">
+                            <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6V6Zm3.5 6 8.5 6V6l-8.5 6Z"/></svg>
+                        </button>
+                        <button class="control-btn play" id="playBtn" title="播放/暂停" aria-label="播放/暂停">
+                            <svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7-11-7Z"/></svg>
+                            <svg id="pauseIcon" class="hidden" viewBox="0 0 24 24"><path d="M6 5h5v14H6V5Zm7 0h5v14h-5V5Z"/></svg>
+                        </button>
+                        <button class="control-btn" id="nextBtn" title="下一首" aria-label="下一首">
+                            <svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2V6ZM6 18l8.5-6L6 6v12Z"/></svg>
+                        </button>
+                        <button class="control-btn" id="playlistBtn" title="我的列表" aria-label="我的列表">
+                            <svg viewBox="0 0 24 24"><path d="M4 6h16v2H4V6Zm0 5h12v2H4v-2Zm0 5h8v2H4v-2Zm12-1v6l5-3-5-3Z"/></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="view-panel" id="viewPanel">
+            <div class="lyrics" id="lyrics"></div>
+            <div class="film" id="filmView">
+                <div class="film-track" id="filmTrack"></div>
+            </div>
+        </div>
+    </section>
+
+    <aside class="popover" id="playlistPop" aria-label="我的列表">
+        <div class="popover-head">我的列表</div>
+        <div class="playlist-list" id="playlistList"></div>
+    </aside>
+
+    <aside class="popover" id="favoritePop" aria-label="我的喜欢">
+        <div class="popover-head">我的喜欢</div>
+        <div class="playlist-list" id="favoriteList"></div>
+    </aside>
+
+    <section class="modal" id="searchModal" aria-label="搜索音乐">
+        <div class="modal-head">
+            <button class="icon-btn close-btn" id="closeSearchBtn" title="关闭" aria-label="关闭">
+                <svg viewBox="0 0 24 24"><path d="m18.3 5.7-1.4-1.4L12 9.2 7.1 4.3 5.7 5.7l4.9 4.9-4.9 4.9 1.4 1.4 4.9-4.9 4.9 4.9 1.4-1.4-4.9-4.9 4.9-4.9Z"/></svg>
+            </button>
+            <div class="searchbar">
+                <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m20.7 19.3-4.2-4.2a7 7 0 1 0-1.4 1.4l4.2 4.2 1.4-1.4ZM5 11a5 5 0 1 1 10 0A5 5 0 0 1 5 11Z"/></svg>
+                <input id="searchInput" type="search" placeholder="搜歌手或歌名" autocomplete="off">
+                <button id="searchBtn">搜索</button>
+            </div>
+            <div class="tabs">
+                <button class="tab active" id="searchTab">探索</button>
+                <button class="tab" id="favoriteTab">我的喜欢</button>
+            </div>
+        </div>
+        <div class="result-list" id="resultList"></div>
+    </section>
+
+    <section class="film-editor" id="filmEditor" aria-label="配置胶片">
+        <div class="film-editor-head">
+            <h2>胶片回忆</h2>
+            <button class="icon-btn" id="closeFilmEditorBtn" title="关闭" aria-label="关闭">
+                <svg viewBox="0 0 24 24"><path d="m18.3 5.7-1.4-1.4L12 9.2 7.1 4.3 5.7 5.7l4.9 4.9-4.9 4.9 1.4 1.4 4.9-4.9 4.9 4.9 1.4-1.4-4.9-4.9 4.9-4.9Z"/></svg>
+            </button>
+        </div>
+        <div class="film-editor-list" id="filmEditorList"></div>
+    </section>
+</main>
+
+<script>
+(function () {
+    const API_BASE = "https://api.xunhuisi.store/API/QQMusic/Song.php";
+    const DEFAULT_COVER = "https://picsum.photos/seed/lab-dragon-album/800/800";
+    const FIXED_SQUARE_COVER = "https://picsum.photos/seed/lab-dragon-fixed-cover/800/800";
+    const DEFAULT_FILM = [
+        "https://picsum.photos/seed/lab-dragon-memory-1/480/320",
+        "https://picsum.photos/seed/lab-dragon-memory-2/480/320",
+        "https://picsum.photos/seed/lab-dragon-memory-3/480/320",
+        "https://picsum.photos/seed/lab-dragon-memory-4/480/320"
+    ];
+
+    const $ = (id) => document.getElementById(id);
+    const widget = $("widget");
+    const audio = $("audio");
+    const songTitle = $("songTitle");
+    const songArtist = $("songArtist");
+    const coverImg = $("coverImg");
+    const vinyl = $("vinyl");
+    const filmInput = $("filmInput");
+    const lyrics = $("lyrics");
+    const progress = $("progress");
+    const currentTime = $("currentTime");
+    const duration = $("duration");
+    const playIcon = $("playIcon");
+    const pauseIcon = $("pauseIcon");
+    const modeIcons = [$("modeSeq"), $("modeRand"), $("modeOne")];
+    const viewPanel = $("viewPanel");
+    const playlistPop = $("playlistPop");
+    const playlistList = $("playlistList");
+    const favoritePop = $("favoritePop");
+    const favoriteList = $("favoriteList");
+    const searchModal = $("searchModal");
+    const searchInput = $("searchInput");
+    const resultList = $("resultList");
+    const searchTab = $("searchTab");
+    const favoriteTab = $("favoriteTab");
+    const filmTrack = $("filmTrack");
+    const filmEditor = $("filmEditor");
+    const filmEditorList = $("filmEditorList");
+    const filmIcon = $("filmIcon");
+    const lyricsIcon = $("lyricsIcon");
+    const editFilmBtn = $("editFilmBtn");
+
+    let favorites = readJson("lab_dragon_favorites", []);
+    let playlist = favorites.slice();
+    let searchResults = [];
+    let activeList = playlist;
+    let activeIndex = playlist.length ? 0 : -1;
+    let currentTrack = playlist.length ? normalizeTrack(playlist[0]) : null;
+    let lyricsData = [];
+    let lastLyricIndex = -1;
+    let searchMode = "search";
+    let playMode = 0;
+    let isFilm = false;
+    let requestId = 0;
+    let filmImages = readJson("lab_dragon_film_images", DEFAULT_FILM);
+
+    function readJson(key, fallback) {
+        try {
+            const raw = localStorage.getItem(key);
+            return raw ? JSON.parse(raw) : fallback;
+        } catch (error) {
+            return fallback;
+        }
+    }
+
+    favorites = favorites.map(normalizeTrack).filter((track) => track.name && track.singer);
+    playlist = playlist.map(normalizeTrack).filter((track) => track.name && track.singer);
+
+    function saveFavorites() {
+        localStorage.setItem("lab_dragon_favorites", JSON.stringify(favorites));
+    }
+
+    function saveFilmImages() {
+        localStorage.setItem("lab_dragon_film_images", JSON.stringify(filmImages));
+    }
+
+    function formatTime(value) {
+        if (!Number.isFinite(value)) return "00:00";
+        const min = Math.floor(value / 60);
+        const sec = Math.floor(value % 60);
+        return `${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+    }
+
+    function setCover(url) {
+        const discCover = url || DEFAULT_COVER;
+        coverImg.src = FIXED_SQUARE_COVER;
+        document.documentElement.style.setProperty("--cover", `url("${FIXED_SQUARE_COVER}")`);
+        document.documentElement.style.setProperty("--disc-cover", `url("${discCover}")`);
+    }
+
+    function setStatus(text) {
+        songArtist.textContent = text;
+    }
+
+    function normalizeTrack(track) {
+        return {
+            mid: track.mid || "",
+            name: track.song || track.name || "未知歌曲",
+            singer: track.singer || "未知歌手",
+            pic: track.pic || track.cover || ""
+        };
+    }
+
+    function parseLrc(text) {
+        if (!text) return [];
+        const lines = [];
+        text.split(/\r?\n/).forEach((line) => {
+            const matches = [...line.matchAll(/\[(\d{1,2}):(\d{1,2}(?:\.\d+)?)\]/g)];
+            const lyric = line.replace(/\[[^\]]+\]/g, "").trim();
+            if (!matches.length || !lyric) return;
+            matches.forEach((match) => {
+                lines.push({
+                    time: Number(match[1]) * 60 + Number(match[2]),
+                    text: lyric
+                });
+            });
+        });
+        return lines.sort((a, b) => a.time - b.time);
+    }
+
+    function renderLyrics(lines) {
+        lyricsData = lines && lines.length ? lines : [
+            { time: 0, text: "在右上角搜索一首歌" },
+            { time: 2, text: "歌词会跟随播放滚动" },
+            { time: 4, text: "切换按钮可进入胶片视图" }
+        ];
+        lastLyricIndex = -1;
+        const useErrorMode = lyricsData.length === 1 && lyricsData[0].text === "这首歌的音轨迷路啦";
+        const useStatusMode = lyricsData.length === 1 && !useErrorMode;
+        lyrics.classList.toggle("status-mode", useStatusMode);
+        lyrics.classList.toggle("error-mode", useErrorMode);
+        lyrics.innerHTML = "";
+        lyricsData.forEach((line, index) => {
+            const p = document.createElement("p");
+            p.className = "lyric-line";
+            p.dataset.index = String(index);
+            p.textContent = line.text;
+            lyrics.appendChild(p);
+        });
+        updateLyric(0);
+    }
+
+    function updateLyric(time) {
+        if (!lyricsData.length) return;
+        let nextIndex = 0;
+        for (let i = lyricsData.length - 1; i >= 0; i--) {
+            if (time >= lyricsData[i].time) {
+                nextIndex = i;
+                break;
+            }
+        }
+        if (nextIndex === lastLyricIndex) return;
+        const oldLine = lyrics.querySelector(".active");
+        if (oldLine) oldLine.classList.remove("active");
+        const active = lyrics.querySelector(`[data-index="${nextIndex}"]`);
+        if (active) {
+            active.classList.add("active");
+            active.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+        lastLyricIndex = nextIndex;
+    }
+
+    function renderPlaylist() {
+        playlistList.innerHTML = "";
+        if (!playlist.length) {
+            playlistList.innerHTML = '<div class="empty">列表里还没有歌曲</div>';
+            return;
+        }
+        playlist.forEach((track, index) => {
+            const item = document.createElement("button");
+            const normalized = normalizeTrack(track);
+            const isActive = sameTrack(currentTrack, normalized);
+            item.className = `playlist-item ${isActive ? "active" : ""}`;
+            item.innerHTML = `
+                <span class="mini-meta">
+                    ${isActive ? '<span class="pulse-dot"></span>' : ""}
+                    <span class="mini-title">${escapeHtml(normalized.name)}</span>
+                </span>
+                <button class="mini-remove" type="button" aria-label="删除">×</button>
+            `;
+            item.querySelector(".mini-meta").addEventListener("click", () => {
+                playTrackByIdentity(normalized, playlist, false);
+                playlistPop.classList.remove("show");
+            });
+            item.querySelector(".mini-remove").addEventListener("click", (event) => {
+                event.stopPropagation();
+                removeFromPlaylist(index);
+            });
+            playlistList.appendChild(item);
+        });
+    }
+
+    function renderFavoriteList() {
+        favoriteList.innerHTML = "";
+        if (!favorites.length) {
+            favoriteList.innerHTML = '<div class="empty">还没有喜欢的歌曲</div>';
+            return;
+        }
+        favorites.forEach((track, index) => {
+            const item = document.createElement("div");
+            const normalized = normalizeTrack(track);
+            const isActive = sameTrack(currentTrack, normalized);
+            item.className = `playlist-item ${isActive ? "active" : ""}`;
+            item.innerHTML = `
+                <span class="mini-meta">
+                    ${isActive ? '<span class="pulse-dot"></span>' : ""}
+                    <span class="mini-title">${escapeHtml(normalized.name)}</span>
+                </span>
+                <button class="favorite-toggle liked" type="button" aria-label="取消喜欢">
+                    <svg viewBox="0 0 24 24"><path d="m12 21-1.4-1.3C5.4 15 2 11.9 2 8.2 2 5.2 4.4 3 7.3 3c1.7 0 3.4.8 4.7 2.1A6.4 6.4 0 0 1 16.7 3C19.6 3 22 5.2 22 8.2c0 3.7-3.4 6.8-8.6 11.5L12 21Z"/></svg>
+                </button>
+            `;
+            item.querySelector(".mini-meta").addEventListener("click", () => {
+                playFromSearch(normalized);
+                favoritePop.classList.remove("show");
+            });
+            item.querySelector(".favorite-toggle").addEventListener("click", (event) => {
+                event.stopPropagation();
+                toggleFavorite(normalized);
+            });
+            favoriteList.appendChild(item);
+        });
+    }
+
+    function renderResults() {
+        resultList.innerHTML = "";
+        const list = searchMode === "search" ? searchResults : favorites;
+        if (!list.length) {
+            resultList.innerHTML = `<div class="empty">${searchMode === "search" ? "输入关键词寻找音乐" : "喜欢的歌曲会在这里"}</div>`;
+            return;
+        }
+        list.forEach((track, index) => {
+            const item = document.createElement("div");
+            const normalized = normalizeTrack(track);
+            const isActive = sameTrack(currentTrack, normalized);
+            const liked = favorites.some((saved) => sameTrack(saved, normalized));
+            item.className = `result-item ${isActive ? "active" : ""}`;
+            item.innerHTML = `
+                ${isActive ? '<span class="pulse-dot"></span>' : ""}
+                <button class="result-meta" type="button">
+                    <div class="result-title">${escapeHtml(normalized.name)}</div>
+                    <div class="result-artist">${escapeHtml(normalized.singer)}</div>
+                </button>
+                <button class="heart ${liked ? "liked" : ""}" type="button" aria-label="收藏">
+                    <svg viewBox="0 0 24 24"><path d="m12 21-1.4-1.3C5.4 15 2 11.9 2 8.2 2 5.2 4.4 3 7.3 3c1.7 0 3.4.8 4.7 2.1A6.4 6.4 0 0 1 16.7 3C19.6 3 22 5.2 22 8.2c0 3.7-3.4 6.8-8.6 11.5L12 21Z"/></svg>
+                </button>
+            `;
+            item.querySelector(".result-meta").addEventListener("click", () => {
+                playFromSearch(normalized);
+                searchModal.classList.remove("show");
+            });
+            item.querySelector(".heart").addEventListener("click", () => toggleFavorite(normalized));
+            resultList.appendChild(item);
+        });
+    }
+
+    function toggleFavorite(track) {
+        const normalized = normalizeTrack(track);
+        const index = favorites.findIndex((item) => sameTrack(item, normalized));
+        if (index >= 0) favorites.splice(index, 1);
+        else favorites.unshift(normalized);
+        saveFavorites();
+        renderPlaylist();
+        renderFavoriteList();
+        renderResults();
+    }
+
+    function sameTrack(a, b) {
+        if (!a || !b) return false;
+        const left = normalizeTrack(a);
+        const right = normalizeTrack(b);
+        if (left.mid && right.mid) return left.mid === right.mid;
+        return left.name === right.name && left.singer === right.singer;
+    }
+
+    function findPlaylistIndex(track) {
+        const normalized = normalizeTrack(track);
+        if (normalized.mid) {
+            const byMid = playlist.findIndex((item) => normalizeTrack(item).mid === normalized.mid);
+            if (byMid >= 0) return byMid;
+        }
+        return playlist.findIndex((item) => sameTrack(item, normalized));
+    }
+
+    function upsertPlaylistTrack(track, toFront = false) {
+        const normalized = normalizeTrack(track);
+        const existingIndex = findPlaylistIndex(normalized);
+        if (existingIndex >= 0) {
+            playlist.splice(existingIndex, 1);
+        }
+        if (toFront) playlist.unshift(normalized);
+        else playlist.push(normalized);
+        return toFront ? 0 : playlist.length - 1;
+    }
+
+    function playTrackByIdentity(track, list = playlist, isInit = false) {
+        const normalized = normalizeTrack(track);
+        activeList = list;
+        const index = list.findIndex((item) => sameTrack(item, normalized));
+        if (index >= 0) {
+            playTrack(index, isInit);
+            return;
+        }
+        const playlistIndex = playlist.findIndex((item) => sameTrack(item, normalized));
+        if (playlistIndex >= 0) {
+            activeList = playlist;
+            playTrack(playlistIndex, isInit);
+            return;
+        }
+    }
+
+    function removeFromPlaylist(index, emptyStateLines) {
+        if (index < 0 || index >= playlist.length) return;
+        const removingCurrent = activeList === playlist && index === activeIndex;
+        playlist.splice(index, 1);
+        if (activeList === playlist) {
+            if (index < activeIndex) activeIndex -= 1;
+            else if (index === activeIndex) activeIndex = Math.min(activeIndex, playlist.length - 1);
+        }
+        renderPlaylist();
+        renderFavoriteList();
+        renderResults();
+        if (!playlist.length) {
+            activeList = playlist;
+            activeIndex = -1;
+            currentTrack = null;
+            audio.pause();
+            audio.src = "";
+            updatePlayState(false);
+            songTitle.textContent = "快把皮皮还给我专属";
+            songArtist.textContent = "搜索一首歌开始播放";
+            setCover(DEFAULT_COVER);
+            if (emptyStateLines && emptyStateLines.length) renderLyrics(emptyStateLines);
+            else renderLyrics();
+            playlistPop.classList.remove("show");
+            return;
+        }
+        if (removingCurrent) {
+            playTrack(activeIndex, false);
+        }
+    }
+
+    async function playFromSearch(track) {
+        const normalized = normalizeTrack(track);
+        if (!normalized.mid) {
+            audio.pause();
+            audio.src = "";
+            updatePlayState(false);
+            songTitle.textContent = normalized.name;
+            setStatus(normalized.singer);
+            setCover(normalized.pic || DEFAULT_COVER);
+            renderLyrics([{ time: 0, text: "这首歌还没拿到通行证" }]);
+            return;
+        }
+
+        const currentRequest = ++requestId;
+        audio.pause();
+        audio.removeAttribute("src");
+        audio.load();
+        songTitle.textContent = normalized.name;
+        setStatus(normalized.singer);
+        setCover(normalized.pic || DEFAULT_COVER);
+        renderLyrics([{ time: 0, text: "正在解析音乐资源..." }]);
+        updatePlayState(false);
+
+        try {
+            const data = await fetchJsonWithRetry(`${API_BASE}?mid=${encodeURIComponent(normalized.mid)}&type=json`, 1);
+            if (currentRequest !== requestId) return;
+            const musicUrl = data.music_url;
+            if (data.code !== 200 || !musicUrl) {
+                audio.pause();
+                audio.src = "";
+                updatePlayState(false);
+                renderLyrics([{ time: 0, text: data.code === 200 ? "这首歌今天有点害羞，先不给我放" : "这首歌偷偷溜走了，咱们换一首吧" }]);
+                return;
+            }
+
+            upsertPlaylistTrack(normalized, true);
+            activeList = playlist;
+            activeIndex = 0;
+            currentTrack = normalizeTrack(playlist[0]);
+            renderPlaylist();
+            renderFavoriteList();
+            renderResults();
+
+            songTitle.textContent = data.title || normalized.name;
+            setStatus(data.singer || normalized.singer);
+            setCover(data.cover || normalized.pic || DEFAULT_COVER);
+            audio.src = musicUrl;
+            renderLyrics(parseLrc(data.lyric || data.lrc || ""));
+            const promise = audio.play();
+            if (promise) promise.catch(() => updatePlayState(false));
+        } catch (error) {
+            if (currentRequest !== requestId) return;
+            renderLyrics([{ time: 0, text: "网络在发小脾气，等会儿再试试呀" }]);
+        }
+    }
+
+    async function fetchJsonWithRetry(url, retries = 1) {
+        let lastError = null;
+        for (let attempt = 0; attempt <= retries; attempt += 1) {
+            try {
+                const response = await fetch(url, { cache: "no-store" });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const text = await response.text();
+                return JSON.parse(text);
+            } catch (error) {
+                lastError = error;
+                if (attempt < retries) {
+                    await new Promise((resolve) => setTimeout(resolve, 350));
+                }
+            }
+        }
+        throw lastError;
+    }
+
+    async function searchSongs() {
+        const keyword = searchInput.value.trim();
+        if (!keyword) return;
+        setSearchMode("search");
+        resultList.innerHTML = '<div class="empty">正在搜索...</div>';
+        try {
+            const data = await fetchJsonWithRetry(`${API_BASE}?name=${encodeURIComponent(keyword)}&type=json&list=18`, 1);
+            const list = Array.isArray(data.data) ? data.data : [];
+            searchResults = list.map(normalizeTrack).filter((track) => track.mid);
+            renderResults();
+            if (!searchResults.length) {
+                resultList.innerHTML = `<div class="empty">${data.code === 200 ? "没有找到可播放结果" : "搜索结果还在路上，稍后再试试"}</div>`;
+            }
+        } catch (error) {
+            resultList.innerHTML = '<div class="empty">搜索结果还在路上，点一次再等等看</div>';
+        }
+    }
+
+    async function playTrack(index, isInit) {
+        if (index < 0 || index >= activeList.length) return;
+        activeIndex = index;
+        const track = normalizeTrack(activeList[index]);
+        if (!track.mid) {
+            renderLyrics([{ time: 0, text: "这首歌还没拿到通行证" }]);
+            return;
+        }
+        currentTrack = track;
+        const currentRequest = ++requestId;
+        audio.pause();
+        audio.removeAttribute("src");
+        audio.load();
+        songTitle.textContent = track.name;
+        setStatus(track.singer);
+        setCover(track.pic || DEFAULT_COVER);
+        renderLyrics([{ time: 0, text: "正在解析音乐资源..." }]);
+        updatePlayState(false);
+        renderPlaylist();
+        renderFavoriteList();
+        renderResults();
+
+        try {
+            const data = await fetchJsonWithRetry(`${API_BASE}?mid=${encodeURIComponent(track.mid)}&type=json`, 1);
+            if (currentRequest !== requestId) return;
+            const musicUrl = data.music_url;
+            if (data.code !== 200 || !musicUrl) {
+                audio.pause();
+                audio.src = "";
+                updatePlayState(false);
+                renderLyrics([{ time: 0, text: data.code === 200 ? "这首歌今天有点害羞，先不给我放" : "这首歌偷偷溜走了，咱们换一首吧" }]);
+                return;
+            }
+            songTitle.textContent = data.title || track.name;
+            setStatus(data.singer || track.singer);
+            setCover(data.cover || track.pic || DEFAULT_COVER);
+            audio.src = musicUrl;
+            renderLyrics(parseLrc(data.lyric || data.lrc || ""));
+            if (!isInit) {
+                const promise = audio.play();
+                if (promise) promise.catch(() => updatePlayState(false));
+            }
+        } catch (error) {
+            if (currentRequest !== requestId) return;
+            renderLyrics([{ time: 0, text: "网络在发小脾气，等会儿再试试呀" }]);
+        }
+    }
+
+    function updatePlayState(playing) {
+        widget.classList.toggle("is-playing", playing);
+        playIcon.classList.toggle("hidden", playing);
+        pauseIcon.classList.toggle("hidden", !playing);
+    }
+
+    function togglePlay() {
+        if (!audio.src) {
+            if (activeList.length) playTrack(activeIndex >= 0 ? activeIndex : 0, false);
+            else searchModal.classList.add("show");
+            return;
+        }
+        if (audio.paused) audio.play().catch(() => updatePlayState(false));
+        else audio.pause();
+    }
+
+    function changeTrack(direction, fromEnd) {
+        if (!activeList.length) return;
+        if (fromEnd && playMode === 2) {
+            audio.currentTime = 0;
+            audio.play().catch(() => updatePlayState(false));
+            return;
+        }
+        let next = activeIndex;
+        if (playMode === 1) next = Math.floor(Math.random() * activeList.length);
+        else next = (activeIndex + direction + activeList.length) % activeList.length;
+        playTrack(next, false);
+    }
+
+    function setSearchMode(mode) {
+        searchMode = mode;
+        searchTab.classList.toggle("active", mode === "search");
+        favoriteTab.classList.toggle("active", mode === "favorite");
+        renderResults();
+    }
+
+    function cycleMode() {
+        playMode = (playMode + 1) % 3;
+        modeIcons.forEach((icon, index) => icon.classList.toggle("hidden", index !== playMode));
+    }
+
+    function toggleView() {
+        isFilm = !isFilm;
+        viewPanel.classList.toggle("show-film", isFilm);
+        filmIcon.classList.toggle("hidden", isFilm);
+        lyricsIcon.classList.toggle("hidden", !isFilm);
+        editFilmBtn.classList.toggle("hidden", !isFilm);
+    }
+
+    function renderFilm() {
+        const images = filmImages.length ? filmImages : DEFAULT_FILM;
+        filmTrack.innerHTML = "";
+        images.concat(images).forEach((url) => {
+            const frame = document.createElement("div");
+            frame.className = "film-strip";
+            frame.style.backgroundImage = `url("${url}")`;
+            filmTrack.appendChild(frame);
+        });
+        renderFilmEditor();
+    }
+
+    function renderFilmEditor() {
+        filmEditorList.innerHTML = "";
+        filmImages.forEach((url, index) => {
+            const thumb = document.createElement("div");
+            thumb.className = "film-thumb";
+            thumb.style.backgroundImage = `url("${url}")`;
+            thumb.innerHTML = '<button type="button" aria-label="删除">×</button>';
+            thumb.querySelector("button").addEventListener("click", () => {
+                filmImages.splice(index, 1);
+                saveFilmImages();
+                renderFilm();
+            });
+            filmEditorList.appendChild(thumb);
+        });
+        const add = document.createElement("button");
+        add.className = "film-thumb add-film";
+        add.type = "button";
+        add.textContent = "+ 添加";
+        add.addEventListener("click", () => filmInput.click());
+        filmEditorList.appendChild(add);
+    }
+
+    function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, (char) => ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#039;"
+        }[char]));
+    }
+
+    filmInput.addEventListener("change", () => {
+        const files = Array.from(filmInput.files || []);
+        if (!files.length) return;
+        let pending = files.length;
+        files.forEach((file) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                filmImages.push(String(reader.result));
+                pending -= 1;
+                if (pending === 0) {
+                    saveFilmImages();
+                    renderFilm();
+                    filmInput.value = "";
+                }
+            };
+            reader.readAsDataURL(file);
+        });
+    });
+
+    $("playBtn").addEventListener("click", togglePlay);
+    $("prevBtn").addEventListener("click", () => changeTrack(-1, false));
+    $("nextBtn").addEventListener("click", () => changeTrack(1, false));
+    $("modeBtn").addEventListener("click", cycleMode);
+    $("playlistBtn").addEventListener("click", (event) => {
+        event.stopPropagation();
+        favoritePop.classList.remove("show");
+        playlistPop.classList.toggle("show");
+        renderPlaylist();
+    });
+    $("favoriteListBtn").addEventListener("click", (event) => {
+        event.stopPropagation();
+        playlistPop.classList.remove("show");
+        favoritePop.classList.toggle("show");
+        renderFavoriteList();
+    });
+    $("toggleViewBtn").addEventListener("click", toggleView);
+    $("openSearchBtn").addEventListener("click", () => {
+        searchModal.classList.add("show");
+        searchInput.focus();
+        renderResults();
+    });
+    $("closeSearchBtn").addEventListener("click", () => searchModal.classList.remove("show"));
+    $("searchBtn").addEventListener("click", searchSongs);
+    searchInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") searchSongs();
+    });
+    searchTab.addEventListener("click", () => setSearchMode("search"));
+    favoriteTab.addEventListener("click", () => setSearchMode("favorite"));
+    editFilmBtn.addEventListener("click", () => filmEditor.classList.add("show"));
+    $("closeFilmEditorBtn").addEventListener("click", () => filmEditor.classList.remove("show"));
+
+    document.addEventListener("click", (event) => {
+        if (!playlistPop.contains(event.target) && !$("playlistBtn").contains(event.target)) {
+            playlistPop.classList.remove("show");
+        }
+        if (!favoritePop.contains(event.target) && !$("favoriteListBtn").contains(event.target)) {
+            favoritePop.classList.remove("show");
+        }
+    });
+
+    progress.addEventListener("input", () => {
+        if (!audio.duration) return;
+        audio.currentTime = (Number(progress.value) / 1000) * audio.duration;
+    });
+
+    audio.addEventListener("timeupdate", () => {
+        const current = audio.currentTime || 0;
+        const total = audio.duration || 0;
+        currentTime.textContent = formatTime(current);
+        duration.textContent = formatTime(total);
+        const percent = total ? (current / total) * 100 : 0;
+        progress.value = total ? Math.round((current / total) * 1000) : 0;
+        progress.style.setProperty("--progress", `${percent}%`);
+        updateLyric(current);
+    });
+    audio.addEventListener("loadedmetadata", () => {
+        duration.textContent = formatTime(audio.duration);
+    });
+    audio.addEventListener("error", () => {
+        updatePlayState(false);
+        if (activeList === playlist && activeIndex >= 0 && activeIndex < playlist.length) {
+            removeFromPlaylist(activeIndex, [{ time: 0, text: "这首歌的音轨迷路啦" }]);
+        }
+        else renderLyrics([{ time: 0, text: "这首歌的音轨迷路啦" }]);
+    });
+    audio.addEventListener("play", () => updatePlayState(true));
+    audio.addEventListener("pause", () => updatePlayState(false));
+    audio.addEventListener("ended", () => changeTrack(1, true));
+
+    renderLyrics();
+    renderFilm();
+    setCover(DEFAULT_COVER);
+    renderPlaylist();
+    renderFavoriteList();
+    renderResults();
+    if (playlist.length) {
+        activeList = playlist;
+        const first = normalizeTrack(playlist[0]);
+        songTitle.textContent = first.name;
+        songArtist.textContent = first.singer;
+        setCover(first.pic || DEFAULT_COVER);
+    }
+})();
+</script>
+</body>
+</html>
